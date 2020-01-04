@@ -10,7 +10,9 @@
 #include <entt/entt.hpp>
 
 #include "config.hpp"
-#include "gol.hpp"
+#include "components.hpp"
+#include "systems.hpp"
+#include "utils.hpp"
 #include "log.hpp"
 
 int main() {
@@ -24,9 +26,13 @@ int main() {
 
     LOG("Starting the game of life");
 
+    LOG("Initialising registry");
     initialise_registry(registry);
-    renderSystem(window, registry);
+    LOG("Rendering system");
+    render_system(window, registry);
+    int rounds = 0;
     while (window.isOpen()) {
+      rounds++;
         sf::Event e;
         while (window.pollEvent(e)) {
             switch (e.type) {
@@ -36,9 +42,16 @@ int main() {
             }
         }
 
-        lifecycleSystem(registry);
-        renderSystem(window, registry);
+        LOG("Running lifecycle system");
+        lifecycle_system(registry);
+        LOG("Rendering system");
+        render_system(window, registry);
+        LOG("Running cleanup system");
+        cleanup_system(registry);
+        LOG("Running update system");
+        update_system(registry);
 
+        // sf::sleep(sf::seconds(10));
         if (!has_alive_cells(registry)) {
             std::cerr << "No cells left alive" << std::endl;
             break;
@@ -47,6 +60,7 @@ int main() {
 
     LOG("Finished the game of life");
     LOG("Ran for " << clock.getElapsedTime().asSeconds() << "s");
+    LOG(rounds << " rounds");
 
     return EXIT_SUCCESS;
 }
