@@ -51,7 +51,7 @@ jobs:
         working-directory: ./with-entt/build
       - name: Build
         run: |
-          cmake ..
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ..
           cmake --build .
         working-directory: ./with-entt/build
       - name: Test
