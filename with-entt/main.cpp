@@ -27,7 +27,7 @@ int main() {
     LOG("Starting the game of life");
 
     LOG("Initialising registry");
-    initialise_registry(registry);
+    initialise_registry(registry, INIT_CELL_COUNT, ARENA_MAX_X, ARENA_MAX_Y);
     LOG("Rendering system");
     render_system(window, registry);
     int rounds = 0;

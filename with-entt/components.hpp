@@ -17,6 +17,7 @@ typedef std::vector<entt::entity> Neighbours;
 bool operator==(const Position &lhs, const Position &rhs);
 bool operator!=(const Position &lhs, const Position &rhs);
 std::ostream &operator<<(std::ostream &os, const Position &pos);
+bool operator<(const Position &lhs, const Position &rhs);
 
 namespace std {
 template <> struct hash<Position> {

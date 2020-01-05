@@ -1,29 +1,9 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+
 #include <doctest.h>
+#include <entt/entt.hpp>
 
-#include "systems.hpp"
 #include "utils.hpp"
-#include "components.hpp"
-
-TEST_CASE("initialise_registry") {
-  REQUIRE(false);
-}
-
-TEST_CASE("lifecycle_systerm") {
-  REQUIRE(false);
-}
-
-TEST_CASE("render_system") {
-  REQUIRE(false);
-}
-
-TEST_CASE("cleanup_system") {
-  REQUIRE(false);
-}
-
-TEST_CASE("update_system") {
-  REQUIRE(false);
-}
 
 TEST_CASE("is_neighbour") {
     Position from, to;
@@ -94,5 +74,43 @@ TEST_CASE("is_neighbour") {
     } else {
         REQUIRE(!is_neighbour(from, to));
         REQUIRE(!is_neighbour(to, from));
+    }
+}
+
+template <typename T>
+std::ostream &operator<<(std::ostream &stream, const std::vector<T> &in) {
+    stream << "{";
+    auto prefix = "";
+    for (auto el : in) {
+        stream << el;
+    }
+    stream << "}";
+    return stream;
+}
+
+TEST_CASE("find_possible_neighbours") {
+    std::random_device rand_dev;
+    std::mt19937 rand_gen(rand_dev());
+    std::uniform_int_distribution<> dist(0, 10);
+
+    Position pos(dist(rand_gen), dist(rand_gen));
+    auto possible_neighbours = find_possible_neighbours(pos);
+
+    CAPTURE(pos);
+    CAPTURE(possible_neighbours);
+
+    for (auto possible_neighbour : possible_neighbours) {
+        auto x_dist = std::abs(pos.x - possible_neighbour.x);
+        auto y_dist = std::abs(pos.y - possible_neighbour.y);
+        if (!(x_dist <= 1 && x_dist >= 0)) {
+            FAIL("difference between x values of "
+                 << pos << " and " << possible_neighbour << " is " << x_dist
+                 << " not 1 or 0");
+        }
+        if (!(y_dist <= 1 && y_dist >= 0)) {
+            FAIL("difference between y values of "
+                 << pos << " and " << possible_neighbour << " is " << y_dist
+                 << " not 1 or 0");
+        }
     }
 }

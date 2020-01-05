@@ -1,45 +1,66 @@
 #include <random>
 #include <unordered_set>
 
-#include <entt/entt.hpp>
 #include <SFML/Graphics.hpp>
+#include <entt/entt.hpp>
 
-#include "config.hpp"
 #include "components.hpp"
+#include "config.hpp"
+#include "log.hpp"
 #include "utils.hpp"
 
-
-/**
- * Enter a cell for every available square but only make INIT_CELL_COUNT alive.
- */
-void initialise_registry(entt::registry &registry) {
-    std::random_device rand_dev;
-    std::mt19937 rand_eng(rand_dev());
-    std::uniform_int_distribution<> rand_dist(1, ARENA_MAX_X);
-    std::unordered_set<Position> alive_cells;
-
-    // Choose the cells that are going to be alive
-    for (auto i = 0; i < INIT_CELL_COUNT; i++) {
-        int x, y;
-        do {
-            x = rand_dist(rand_eng);
-            y = rand_dist(rand_eng);
-        } while (alive_cells.find(Position(x, y)) != alive_cells.end());
-        alive_cells.emplace(x, y);
+template <typename T>
+std::ostream &operator<<(std::ostream &stream, const std::vector<T> &in) {
+    stream << "{";
+    auto prefix = "";
+    for (auto el : in) {
+        stream << el;
     }
-
-    for (auto x = 0; x < ARENA_MAX_X; x++) {
-        for (auto y = 0; y < ARENA_MAX_Y; y++) {
-            auto entity = registry.create();
-            registry.assign<Position>(entity, x, y);
-
-            if (alive_cells.find(Position(x, y)) != alive_cells.end()) {
-                registry.assign<entt::tag<"is_alive"_hs>>(entity);
-            }
-        }
-    }
+    stream << "}";
+    return stream;
 }
 
+
+template <typename T>
+std::ostream &operator<<(std::ostream &stream,
+                         const std::unordered_set<T> &in) {
+    stream << "{";
+    auto prefix = "";
+    for (auto el : in) {
+        stream << el;
+    }
+    stream << "}";
+    return stream;
+}
+
+/**
+ * Initialise the registry with live cells.
+ */
+void initialise_registry(entt::registry &registry, int n_alive_cells,
+                         int arena_x_max, int arena_y_max) {
+    std::unordered_set<Position> positions;
+
+    // Build up the collection of possible possitions
+    for (auto x = 0; x < arena_x_max; x++) {
+        for (auto y = 0; y < arena_y_max; y++) {
+            positions.emplace(x, y);
+        }
+    }
+
+    // Randomly select the live cell positions, without replacement
+    for (auto i = 0; i < n_alive_cells; i++) {
+        auto pos = rand_choice(positions.begin(), positions.end());
+        auto entity = registry.create();
+        registry.assign<Position>(entity, *pos);
+        registry.assign<entt::tag<"is_alive"_hs>>(entity);
+        positions.erase(pos);
+    }
+
+    for (auto pos : positions) {
+        auto entity = registry.create();
+        registry.assign<Position>(entity, pos);
+    }
+}
 
 /**
  * Run the Game of Life lifecycle.
@@ -49,7 +70,7 @@ void lifecycle_system(entt::registry &registry) {
 
     // Find and set currently alive cells that will be alive in the next round
     registry.view<Position, entt::tag<"is_alive"_hs>>().each(
-        [&, alive_cells](auto entity, auto &pos, auto _) mutable {
+        [&](auto entity, auto &pos, auto _) mutable {
             int neighbour_count = 0;
             auto view = registry.view<Position, entt::tag<"is_alive"_hs>>();
             for (auto entity : view) {
@@ -64,17 +85,21 @@ void lifecycle_system(entt::registry &registry) {
             alive_cells.emplace(pos.x, pos.y);
         });
 
+
     // Determine and create cells that will be alive next round but currently
     // don't exist. This uses the position map built up whilst setting the
     // currently alive cells that will be alive next round.
-    registry.view<Position, entt::tag<"is_alive"_hs>>().each(
-        [&, alive_cells](auto entity, auto &pos, auto _) {
-            int neighbour_count = 0;
+    registry.group<Position>(entt::exclude<entt::tag<"is_alive"_hs>>)
+        .each([&, alive_cells](auto entity, auto &pos) {
             auto possible_neighbours = find_possible_neighbours(pos);
-            for (auto possible_neighbour : possible_neighbours) {
-                neighbour_count +=
-                    alive_cells.find(possible_neighbour) != alive_cells.end();
-            }
+            int neighbour_count = std::count_if(
+                possible_neighbours.begin(), possible_neighbours.end(),
+                [alive_cells](auto pos) {
+                    auto res = alive_cells.find(pos) != alive_cells.end();
+                    if (res) {
+                    }
+                    return res;
+                });
             if (neighbour_count == 3 &&
                 !registry.has<entt::tag<"is_alive"_hs>>(entity)) {
                 registry.assign<entt::tag<"is_alive_next"_hs>>(entity);
@@ -90,7 +115,8 @@ void render_system(sf::RenderWindow &window, entt::registry &registry) {
 
     registry.group<Position>(entt::get<entt::tag<"is_alive"_hs>>)
         .each([&window](auto &pos, auto _) {
-                sf::RectangleShape cell(sf::Vector2f(1.0f * (SCALE - 0.5f), 1.0f * (SCALE - 0.5f)));
+            sf::RectangleShape cell(
+                sf::Vector2f(1.0f * (SCALE - 0.5f), 1.0f * (SCALE - 0.5f)));
             cell.setPosition(pos.x * SCALE, pos.y * SCALE);
             window.draw(cell);
         });
@@ -99,13 +125,15 @@ void render_system(sf::RenderWindow &window, entt::registry &registry) {
 }
 
 /**
- * Remove entities that are not alive in the next round.
+ * Remove the is_alive tag from entities that are not alive in the next round.
  */
 void cleanup_system(entt::registry &registry) {
     registry
         .group<entt::tag<"is_alive"_hs>>(
             entt::exclude<entt::tag<"is_alive_next"_hs>>)
-        .each([&](auto entity, auto _) { registry.destroy(entity); });
+        .each([&](auto entity, auto _) {
+            registry.remove<entt::tag<"is_alive"_hs>>(entity);
+        });
 }
 
 /**
@@ -119,4 +147,3 @@ void update_system(entt::registry &registry) {
             registry.remove<entt::tag<"is_alive_next"_hs>>(entity);
         });
 }
-
