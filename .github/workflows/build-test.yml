@@ -40,6 +40,8 @@ jobs:
           pip --version
           cmake --version
           conan --version
+      - name: Setup conan remotes
+        run: conan config install .conan
       - name: Create build directory
         run: mkdir build
         working-directory: ./with-entt
