@@ -45,7 +45,7 @@ jobs:
         working-directory: ./with-entt
       - name: Install conan packages
         run: |
-          conan install
+          conan install ..
         working-directory: ./with-entt/build
       - name: Build
         run: |
