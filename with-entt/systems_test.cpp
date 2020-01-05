@@ -275,7 +275,6 @@ TEST_SUITE("lifecycle_system") {
                 auto ent = registry.create();
                 registry.assign<Position>(ent, pos);
                 if (neighbours.find(pos) != neighbours.end()) {
-                    std::cout << "Setting " << pos << " as alive" << std::endl;
                     registry.assign<entt::tag<"is_alive"_hs>>(ent);
                 }
                 if (pos == cell_pos) {
