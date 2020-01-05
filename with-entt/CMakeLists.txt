@@ -21,7 +21,7 @@ function(add_gol_test)
 
 add_executable(run_${TEST_NAME}_tests ${TEST_NAME}_test.cpp ${TEST_NAME}.cpp ${TEST_DEPS})
 target_link_libraries(run_${TEST_NAME}_tests ${CONAN_LIBS})
-add_test(tests run_${TEST_NAME}_tests)
+add_test(${TEST_NAME}_tests ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/run_${TEST_NAME}_tests)
 endfunction(add_gol_test)
 
 add_gol_test(NAME systems DEPS components.cpp utils.cpp)
