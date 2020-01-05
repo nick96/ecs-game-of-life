@@ -1,3 +1,5 @@
+name: Game of Life with EnTT
+
 on: [push]
 
 jobs:
@@ -37,14 +39,20 @@ jobs:
           python --version
           pip --version
           cmake --version
+          conan --version
+      - name: Create build directory
+        run: mkdir build
+        working-directory: ./with-entt
+      - name: Install conan packages
+        run: |
+          conan install
+        working-directory: ./with-entt/build
       - name: Build
         run: |
-          mkdir build
-          cd build
-          conan install ..
           cmake ..
           cmake --build .
+        working-directory: ./with-entt/build
       - name: Test
         run: |
-          cd build
           ctest --verbose
+        working-directory: ./with-entt/build
