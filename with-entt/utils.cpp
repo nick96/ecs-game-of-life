@@ -9,10 +9,7 @@
 
 bool has_alive_cells(entt::registry &registry) {
     auto view = registry.view<entt::tag<"is_alive"_hs>>();
-    for (auto entity : view) {
-        return true;
-    }
-    return false;
+    return view.size() > 0;
 }
 
 bool is_neighbour(Position pos1, Position pos2) {
