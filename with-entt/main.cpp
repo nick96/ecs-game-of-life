@@ -11,7 +11,6 @@
 #include <entt/entt.hpp>
 
 #include "components.hpp"
-#include "config.hpp"
 #include "log.hpp"
 #include "systems.hpp"
 #include "utils.hpp"

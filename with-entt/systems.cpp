@@ -5,7 +5,6 @@
 #include <entt/entt.hpp>
 
 #include "components.hpp"
-#include "config.hpp"
 #include "log.hpp"
 #include "utils.hpp"
 
