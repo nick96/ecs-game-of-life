@@ -110,14 +110,15 @@ void lifecycle_system(entt::registry &registry) {
 /**
  * Render the current state.
  */
-void render_system(sf::RenderWindow &window, entt::registry &registry) {
+void render_system(sf::RenderWindow &window, int scale,
+                   entt::registry &registry) {
     window.clear(sf::Color::Black);
 
     registry.group<Position>(entt::get<entt::tag<"is_alive"_hs>>)
-        .each([&window](auto &pos, auto _) {
+        .each([&](auto &pos, auto _) {
             sf::RectangleShape cell(
-                sf::Vector2f(1.0f * (SCALE - 0.5f), 1.0f * (SCALE - 0.5f)));
-            cell.setPosition(pos.x * SCALE, pos.y * SCALE);
+                sf::Vector2f(1.0f * (scale - 0.5f), 1.0f * (scale - 0.5f)));
+            cell.setPosition(pos.x * scale, pos.y * scale);
             window.draw(cell);
         });
 
