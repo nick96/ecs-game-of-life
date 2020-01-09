@@ -85,11 +85,10 @@ void lifecycle_system(entt::registry &registry) {
             alive_cells.emplace(pos.x, pos.y);
         });
 
-
     // Determine and create cells that will be alive next round but currently
     // don't exist. This uses the position map built up whilst setting the
     // currently alive cells that will be alive next round.
-    registry.group<Position>(entt::exclude<entt::tag<"is_alive"_hs>>)
+    registry.view<Position>(entt::exclude<entt::tag<"is_alive"_hs>>)
         .each([&, alive_cells](auto entity, auto &pos) {
             auto possible_neighbours = find_possible_neighbours(pos);
             int neighbour_count = std::count_if(
