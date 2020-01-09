@@ -10,7 +10,7 @@ bool operator!=(const Position &lhs, const Position &rhs) {
     return !(lhs == rhs);
 }
 
-std::ostream &operator<<(std::ostream &os, Position &pos) {
+std::ostream &operator<<(std::ostream &os, const Position &pos) {
     os << "(" << pos.x << ", " << pos.y << ")";
     return os;
 }
