@@ -69,16 +69,22 @@ int main(int argc, char *argv[]) {
     sf::VideoMode mode = sf::VideoMode(config.arena_max_x, config.arena_max_y);
     sf::RenderWindow window(mode, "Game of Life");
     sf::Clock clock;
+    sf::Clock system_timing;
 
     window.clear(sf::Color::Black);
 
     LOG("Starting the game of life");
 
-    LOG("Initialising registry");
+    system_timing.restart();
     initialise_registry(registry, config.init_cell_count, config.arena_max_x,
                         config.arena_max_y);
-    LOG("Rendering system");
+    std::cout << "Initialise registry in "
+              << system_timing.getElapsedTime().asSeconds() << "s" << std::endl;
+
+    system_timing.restart();
     render_system(window, config.scale, registry);
+    std::cout << "Ran render system in "
+              << system_timing.getElapsedTime().asSeconds() << "s" << std::endl;
     int rounds = 0;
     while (window.isOpen()) {
         rounds++;
@@ -93,14 +99,28 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        LOG("Running lifecycle system");
+        system_timing.restart();
         lifecycle_system(registry);
-        LOG("Rendering system");
+        std::cout << "Ran lifecycle system in "
+                  << system_timing.getElapsedTime().asSeconds() << "s"
+                  << std::endl;
+
+        system_timing.restart();
         render_system(window, config.scale, registry);
-        LOG("Running cleanup system");
+        std::cout << "Ran render system in "
+                  << system_timing.getElapsedTime().asSeconds() << "s"
+                  << std::endl;
+
+        system_timing.restart();
         cleanup_system(registry);
-        LOG("Running update system");
+        std::cout << "Ran cleanup system in "
+                  << system_timing.getElapsedTime().asSeconds() << "s"
+                  << std::endl;
+
+        system_timing.restart();
         update_system(registry);
+        std::cout << "Ran render system in "
+                  << system_timing.getElapsedTime().asSeconds() << std::endl;
 
         // sf::sleep(sf::seconds(10));
         if (!has_alive_cells(registry)) {
