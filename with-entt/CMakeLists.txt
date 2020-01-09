@@ -7,6 +7,14 @@ conan_basic_setup()
 
 add_executable(gol main.cpp systems.cpp components.cpp utils.cpp)
 target_link_libraries(gol ${CONAN_LIBS})
+if(CMAKE_COMPILER_IS_GNUCXX)
+  target_compile_options(gol PRIVATE "-Wall")
+elseif(MSVC)
+  target_compile_options(gol PRIVATE "/W3")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  target_compile_options(gol PRIVATE "-Wall")
+endif()
+
 
 enable_testing()
 
