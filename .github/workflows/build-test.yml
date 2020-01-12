@@ -55,6 +55,5 @@ jobs:
           cmake --build .
         working-directory: ./with-entt/build
       - name: Test
-        run: |
-          ctest --verbose
+        run: CTEST_OUTPUT_ON_FAILURE=1 ctest
         working-directory: ./with-entt/build
