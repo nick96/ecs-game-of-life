@@ -1,6 +1,6 @@
+#include <algorithm>
 #include <iterator>
 #include <random>
-#include <algorithm>
 
 #include <entt/entt.hpp>
 
@@ -13,8 +13,8 @@ bool has_alive_cells(entt::registry &registry) {
 }
 
 bool is_neighbour(Position pos1, Position pos2) {
-  auto neighbours = find_possible_neighbours(pos1);
-  return std::find(neighbours.begin(), neighbours.end(), pos2) != neighbours.end();
+    return pos1 != pos2 && std::abs(pos1.x - pos2.x) <= 1 &&
+           std::abs(pos1.y - pos2.y) <= 1;
 }
 
 std::vector<Position> find_possible_neighbours(Position pos) {

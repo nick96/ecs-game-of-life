@@ -2,6 +2,8 @@
 sfml/2.5.1@bincrafters/stable
 entt/3.2.2@skypjack/stable
 doctest/2.3.4@bincrafters/stable
+gtest/1.8.1@bincrafters/stable
+
 
 [options]
 sfml:graphics=True

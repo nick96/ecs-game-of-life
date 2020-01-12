@@ -1,116 +1,84 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-
-#include <doctest.h>
 #include <entt/entt.hpp>
+#include <gtest/gtest.h>
+#include <rapidcheck.h>
+#include <rapidcheck/gtest.h>
 
+#include "components.hpp"
 #include "utils.hpp"
 
-TEST_CASE("is_neighbour") {
-    Position from, to;
-    bool are_neighbours;
-    SUBCASE("North") {
-        from = Position{5, 5};
-        to = Position{5, 6};
-        are_neighbours = true;
+namespace rc {
+template <> struct Arbitrary<Position> {
+    static Gen<Position> arbitrary() {
+        auto range = gen::inRange(-50, 50);
+        return gen::build<Position>(gen::set(&Position::x, range),
+                                    gen::set(&Position::y, range));
     }
-    SUBCASE("South") {
-        from = Position{5, 5};
-        to = Position{5, 4};
-        are_neighbours = true;
-    }
-    SUBCASE("East") {
-        from = Position{5, 5};
-        to = Position{6, 5};
-        are_neighbours = true;
-    }
-    SUBCASE("West") {
-        from = Position{5, 5};
-        to = Position{4, 5};
-        are_neighbours = true;
-    }
-    SUBCASE("North-East") {
-        from = Position{5, 5};
-        to = Position{5, 6};
-        are_neighbours = true;
-    }
-    SUBCASE("North-West") {
-        from = Position{5, 5};
-        to = Position{5, 6};
-        are_neighbours = true;
-    }
-    SUBCASE("South-East") {
-        from = Position{5, 5};
-        to = Position{5, 4};
-        are_neighbours = true;
-    }
-    SUBCASE("South-West") {
-        from = Position{5, 5};
-        to = Position{5, 4};
-        are_neighbours = true;
-    }
-    SUBCASE("East") {
-        from = Position{5, 5};
-        to = Position{6, 5};
-        are_neighbours = true;
-    }
-    SUBCASE("West") {
-        from = Position{5, 5};
-        to = Position{4, 5};
-        are_neighbours = true;
-    }
-    SUBCASE("Not neighbour") {
-        from = Position{5, 5};
-        to = Position{3, 5};
-        are_neighbours = false;
-    }
+};
+} // namespace rc
 
-    CAPTURE(from);
-    CAPTURE(to);
-    CAPTURE(are_neighbours);
-
-    if (are_neighbours) {
-        REQUIRE(is_neighbour(from, to));
-        REQUIRE(is_neighbour(to, from));
-    } else {
-        REQUIRE(!is_neighbour(from, to));
-        REQUIRE(!is_neighbour(to, from));
-    }
+RC_GTEST_PROP(is_neighbour, adjacent_cells_are_neighbours,
+              (const Position &pos)) {
+    const auto adjacent_position =
+        *rc::gen::suchThat<Position>([&](auto other) {
+            return pos != other && std::abs(pos.x - other.x) <= 1 &&
+                   std::abs(pos.y - other.y) <= 1;
+        });
+    RC_ASSERT(is_neighbour(pos, adjacent_position));
 }
 
-template <typename T>
-std::ostream &operator<<(std::ostream &stream, const std::vector<T> &in) {
-    stream << "{";
-    auto prefix = "";
-    for (auto el : in) {
-        stream << el;
-    }
-    stream << "}";
-    return stream;
+RC_GTEST_PROP(is_neighbour, non_adjacent_cells_are_not_neighbours,
+              (const Position &pos)) {
+    const auto non_adjacent_position =
+        *rc::gen::suchThat<Position>([&](auto other) {
+            return !(pos != other && std::abs(pos.x - other.x) <= 1 &&
+                     std::abs(pos.y - other.y) <= 1);
+        });
+    RC_ASSERT_FALSE(is_neighbour(pos, non_adjacent_position));
 }
 
-TEST_CASE("find_possible_neighbours") {
-    std::random_device rand_dev;
-    std::mt19937 rand_gen(rand_dev());
-    std::uniform_int_distribution<> dist(0, 10);
+RC_GTEST_PROP(is_neighbour, positions_are_neighbours_to_themselves,
+              (const Position &pos)) {
+    RC_ASSERT_FALSE(is_neighbour(pos, pos));
+}
 
-    Position pos(dist(rand_gen), dist(rand_gen));
-    auto possible_neighbours = find_possible_neighbours(pos);
+RC_GTEST_PROP(find_possible_neighbours, all_pass_is_neighbour,
+              (const Position &pos)) {
+    const auto neighbours = find_possible_neighbours(pos);
+    RC_ASSERT(std::all_of(
+        std::begin(neighbours), std::end(neighbours),
+        [pos](const auto other) { return is_neighbour(pos, other); }));
+}
 
-    CAPTURE(pos);
-    CAPTURE(possible_neighbours);
+RC_GTEST_PROP(has_alive_cells, has_some_alive_cells, ()) {
+    entt::registry registry;
+    auto alive_positions = *rc::gen::nonEmpty<std::unordered_set<Position>>();
 
-    for (auto possible_neighbour : possible_neighbours) {
-        auto x_dist = std::abs(pos.x - possible_neighbour.x);
-        auto y_dist = std::abs(pos.y - possible_neighbour.y);
-        if (!(x_dist <= 1 && x_dist >= 0)) {
-            FAIL("difference between x values of "
-                 << pos << " and " << possible_neighbour << " is " << x_dist
-                 << " not 1 or 0");
-        }
-        if (!(y_dist <= 1 && y_dist >= 0)) {
-            FAIL("difference between y values of "
-                 << pos << " and " << possible_neighbour << " is " << y_dist
-                 << " not 1 or 0");
+    for (auto x = -50; x < 50; x++) {
+        for (auto y = -50; y < 50; y++) {
+            auto ent = registry.create();
+            Position pos(x, y);
+            registry.assign<Position>(ent, pos);
+            if (std::find(std::begin(alive_positions),
+                          std::end(alive_positions),
+                          pos) != std::end(alive_positions)) {
+                std::cout << "Creating live cells at " << pos << std::endl;
+                registry.assign<entt::tag<"is_alive"_hs>>(ent);
+            }
         }
     }
+    RC_ASSERT(has_alive_cells(registry));
+}
+
+RC_GTEST_PROP(has_alive_cells, has_no_alive_cells, ()) {
+    entt::registry registry;
+    auto dim = *rc::gen::inRange<int>(1, 100);
+
+    for (auto x = 0; x < dim; x++) {
+        for (auto y = 0; y < dim; y++) {
+            auto ent = registry.create();
+            Position pos(x, y);
+            registry.assign<Position>(ent, pos);
+        }
+    }
+    RC_ASSERT_FALSE(has_alive_cells(registry));
 }

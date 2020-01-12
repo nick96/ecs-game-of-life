@@ -1,0 +1,3 @@
+[submodule "with-entt/rapidcheck"]
+	path = with-entt/rapidcheck
+	url = https://github.com/emil-e/rapidcheck
