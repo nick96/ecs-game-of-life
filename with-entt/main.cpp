@@ -20,11 +20,12 @@ struct Config {
     int arena_max_y;
     int scale;
     int init_cell_count;
+    int max_rounds;
     bool help;
 
     Config()
         : arena_max_x(50), arena_max_y(50), scale(10), init_cell_count(1500),
-          help(false) {}
+          max_rounds(-1), help(false) {}
 };
 
 void parse_args(int argc, char *argv[], Config &cfg) {
@@ -41,12 +42,14 @@ void parse_args(int argc, char *argv[], Config &cfg) {
             cfg.scale = atoi(argv[i + 1]);
         } else if (arg == "-i") {
             cfg.init_cell_count = atoi(argv[i + 1]);
+        } else if (arg == "-m") {
+            cfg.max_rounds = atoi(argv[i + 1]);
         }
     }
 }
 
 void usage(char *name) {
-    std::cout
+    std::cerr
         << name << " - Conlway's Game of Life Simulation" << std::endl
         << "-h   - Help message" << std::endl
         << "-x X - X dimension for the arena (default 50)" << std::endl
@@ -54,7 +57,10 @@ void usage(char *name) {
         << "-s S - Scale at which to draw the simulation (default 10)"
         << std::endl
         << "-i I - Number of cells to start the simulation with (default 1500)"
+        << std::endl
+        << "-m M - Max number of rounds to run for (default fovever)"
         << std::endl;
+    ;
 }
 
 int main(int argc, char *argv[]) {
@@ -70,6 +76,7 @@ int main(int argc, char *argv[]) {
     sf::RenderWindow window(mode, "Game of Life");
     sf::Clock clock;
     sf::Clock system_timing;
+    sf::Clock round_timing;
 
     window.clear(sf::Color::Black);
 
@@ -78,15 +85,16 @@ int main(int argc, char *argv[]) {
     system_timing.restart();
     initialise_registry(registry, config.init_cell_count, config.arena_max_x,
                         config.arena_max_y);
-    std::cout << "Initialise registry in "
-              << system_timing.getElapsedTime().asSeconds() << "s" << std::endl;
+    LOG("Initialise registry in " << system_timing.getElapsedTime().asSeconds()
+                                  << "s");
 
     system_timing.restart();
     render_system(window, config.scale, registry);
-    std::cout << "Ran render system in "
-              << system_timing.getElapsedTime().asSeconds() << "s" << std::endl;
+    LOG("Ran render system in " << system_timing.getElapsedTime().asSeconds()
+                                << "s");
     int rounds = 0;
     while (window.isOpen()) {
+        round_timing.restart();
         rounds++;
         sf::Event e;
         while (window.pollEvent(e)) {
@@ -101,30 +109,31 @@ int main(int argc, char *argv[]) {
 
         system_timing.restart();
         lifecycle_system(registry);
-        std::cout << "Ran lifecycle system in "
-                  << system_timing.getElapsedTime().asSeconds() << "s"
-                  << std::endl;
+        LOG("Ran lifecycle system in "
+            << system_timing.getElapsedTime().asSeconds() << "s");
 
         system_timing.restart();
         render_system(window, config.scale, registry);
-        std::cout << "Ran render system in "
-                  << system_timing.getElapsedTime().asSeconds() << "s"
-                  << std::endl;
+        LOG("Ran render system in "
+            << system_timing.getElapsedTime().asSeconds() << "s");
 
         system_timing.restart();
         cleanup_system(registry);
-        std::cout << "Ran cleanup system in "
-                  << system_timing.getElapsedTime().asSeconds() << "s"
-                  << std::endl;
+        LOG("Ran cleanup system in "
+            << system_timing.getElapsedTime().asSeconds() << "s");
 
         system_timing.restart();
         update_system(registry);
-        std::cout << "Ran render system in "
-                  << system_timing.getElapsedTime().asSeconds() << std::endl;
+        LOG("Ran render system in "
+            << system_timing.getElapsedTime().asSeconds() << "s");
 
-        // sf::sleep(sf::seconds(10));
+        LOG("Round took " << round_timing.getElapsedTime().asSeconds() << "s");
+
         if (!has_alive_cells(registry)) {
-            std::cerr << "No cells left alive" << std::endl;
+            LOG("No cells left alive");
+            break;
+        } else if (config.max_rounds != -1 && rounds >= config.max_rounds) {
+            LOG("Reached max number of rounds " << config.max_rounds);
             break;
         }
     }
